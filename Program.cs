@@ -10,9 +10,13 @@ namespace ServerRestartConsole
 {
     class Program
     {
-        private static List<TimeSpan> times      = new List<TimeSpan>();
-        private static string server_cmd_file    = string.Empty;
-        private static string server_working_dir = string.Empty;
+        private static List<TimeSpan> times         = new List<TimeSpan>();
+        private static List<TimeSpan> warning_times = new List<TimeSpan>();
+        private static string server_cmd_file       = string.Empty;
+        private static string server_working_dir    = string.Empty;
+        private static string server_config         = string.Empty;
+        private static string server_exe            = string.Empty;
+        private static string server_citizen        = string.Empty;
 
         private static int previous_start              = -1;
         private static Process server                  = new Process();
@@ -20,31 +24,46 @@ namespace ServerRestartConsole
 
         static void Main(string[] args)
         {
-            server_cmd_file         = ConfigurationManager.AppSettings["ServerCmd"];
-            server_working_dir      = ConfigurationManager.AppSettings["WorkingDirectory"];
+            server_cmd_file    = ConfigurationManager.AppSettings["ServerExe"];
+            server_working_dir = ConfigurationManager.AppSettings["WorkingDirectory"];
+            server_config      = ConfigurationManager.AppSettings["ServerConfig"];
+            server_exe         = ConfigurationManager.AppSettings["ServerExe"];
+            server_citizen     = ConfigurationManager.AppSettings["ServerCitizen"];
+
             List<string> temp_hours = ConfigurationManager.AppSettings["TimesToRestart"].Split(',').ToList<string>();
             times = temp_hours.Select(obj => new TimeSpan(int.Parse(obj), 0, 0)).ToList<TimeSpan>();
-
 
             SetProcess();
             StartServer();
 
+            Thread restarter = new Thread(ServerRestartChecker);
+            restarter.Start();
+
             while (true)
             {
-                Thread.Sleep(1000);
-                CheckToRestartServer();
+                Console.Write("[FivemStormManager]$ ");
+                WriteToServer(Console.ReadLine(), false);
             }
 
         }
 
         private static void SetProcess()
         {
-            server.StartInfo.UseShellExecute       = true;
-            server.StartInfo.FileName              = "cmd.exe";
-            server.StartInfo.Arguments             = " /C " + server_working_dir + server_cmd_file;
+            server.StartInfo.UseShellExecute       = false;
+            server.StartInfo.FileName              = server_exe;
+            server.StartInfo.Arguments             = string.Format(" +set citizen_dir {0} +exec {1} +set onesync_enabled 1", server_citizen, server_config);
             server.StartInfo.WorkingDirectory      = server_working_dir;
             server.StartInfo.CreateNoWindow        = false;
-            //server.StartInfo.RedirectStandardInput = true;
+            server.StartInfo.RedirectStandardInput = true;
+        }
+
+        private static void ServerRestartChecker()
+        {
+            while (true)
+            {
+                Thread.Sleep(1000);
+                CheckToRestartServer();
+            }
         }
 
         private static void CheckToRestartServer()
@@ -58,9 +77,15 @@ namespace ServerRestartConsole
 
         private static void RestartServer()
         {
+
             Write("Restarting Server.");
+            WriteToServer("kickall");
+            Write("Waiting 20 seconds.");
+
+            Thread.Sleep(20000);
             KillServer();
             StartServer();
+
         }
 
         private static void KillServer()
@@ -89,29 +114,19 @@ namespace ServerRestartConsole
 
             spawned_processes = ProcessManagement.GetListOfAllServerProcesses(server.Id);
             Write(string.Format("Spawned {0} processes", spawned_processes.Count));
-            HookIntoFXServer();
-
-        }
-
-        private static void HookIntoFXServer()
-        {
-            Process process = spawned_processes.Find(obj => obj.ProcessName == "FXServer");
-            try
-            {
-                process.StandardInput.WriteLine("kickall\n");
-            }
-            catch (Exception e) { Write(e.Message); }
 
         }
 
         private static void Write(string message)
         {
-            Console.WriteLine(DateTime.Now.ToString() + " : " + message);
+            Console.WriteLine("FivemStormManager " + DateTime.Now.ToString() + " : " + message);
         }
 
-        private static void WriteToServer(string message)
+        private static void WriteToServer(string message, bool with_write_message = true)
         {
-            Write("Attempting to write to server " + message);
+            if (with_write_message)
+                Write("Executing " + message);
+
             try
             {
                 server.StandardInput.WriteLine(message);
