@@ -7,7 +7,7 @@
     <ProjectGuid>{88ABEFC4-7328-47DA-A103-ECA0E16B2864}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>ServerRestartConsole</RootNamespace>
-    <AssemblyName>ServerRestartConsole</AssemblyName>
+    <AssemblyName>FivemStormManager</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

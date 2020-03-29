@@ -4,7 +4,6 @@ using System.Linq;
 using System.Configuration;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Management;
 using System.Threading;
 
 namespace ServerRestartConsole
@@ -15,8 +14,9 @@ namespace ServerRestartConsole
         private static string server_cmd_file    = string.Empty;
         private static string server_working_dir = string.Empty;
 
-        private static int previous_start = -1;
-        private static Process server     = new Process();
+        private static int previous_start              = -1;
+        private static Process server                  = new Process();
+        private static List<Process> spawned_processes = new List<Process>();
 
         static void Main(string[] args)
         {
@@ -44,6 +44,7 @@ namespace ServerRestartConsole
             server.StartInfo.Arguments             = " /C " + server_working_dir + server_cmd_file;
             server.StartInfo.WorkingDirectory      = server_working_dir;
             server.StartInfo.CreateNoWindow        = false;
+            //server.StartInfo.RedirectStandardInput = true;
         }
 
         private static void CheckToRestartServer()
@@ -67,7 +68,7 @@ namespace ServerRestartConsole
             try
             {
                 Write("Attempting to kill server.");
-                KillProcessAndChildrens(server.Id);
+                ProcessManagement.KillProcessAndChildrens(server.Id);
                 Write("Killed server.");
             }
             catch (Exception e) { Write(e.Message); }
@@ -75,36 +76,32 @@ namespace ServerRestartConsole
 
         private static void StartServer()
         {
+
             previous_start = DateTime.Now.TimeOfDay.Hours;
             try
             {
                 Write("Attempting to start server.");
                 server.Start();
+                Thread.Sleep(2000);
                 Write("Server started.");
             }
-            catch (Exception e) { Write(e.Message); }
+            catch (Exception e) { Write(e.Message); return; }
+
+            spawned_processes = ProcessManagement.GetListOfAllServerProcesses(server.Id);
+            Write(string.Format("Spawned {0} processes", spawned_processes.Count));
+            HookIntoFXServer();
+
         }
 
-        private static void KillProcessAndChildrens(int pid)
+        private static void HookIntoFXServer()
         {
-            ManagementObjectSearcher processSearcher = new ManagementObjectSearcher
-              ("Select * From Win32_Process Where ParentProcessID=" + pid);
-            ManagementObjectCollection processCollection = processSearcher.Get();
-
+            Process process = spawned_processes.Find(obj => obj.ProcessName == "FXServer");
             try
             {
-                Process proc = Process.GetProcessById(pid);
-                if (!proc.HasExited) proc.Kill();
+                process.StandardInput.WriteLine("kickall\n");
             }
-            catch (ArgumentException) { }
+            catch (Exception e) { Write(e.Message); }
 
-            if (processCollection != null)
-            {
-                foreach (ManagementObject mo in processCollection)
-                {
-                    KillProcessAndChildrens(Convert.ToInt32(mo["ProcessID"]));
-                }
-            }
         }
 
         private static void Write(string message)
