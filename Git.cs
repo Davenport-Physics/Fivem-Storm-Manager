@@ -13,6 +13,7 @@ namespace FivemStormManager
         private static string git_repo   = string.Empty;
         private static string git_user   = string.Empty;
         private static string git_pass   = string.Empty;
+        private static string git_email  = string.Empty;
 
         public static void InitGit()
         {
@@ -20,6 +21,7 @@ namespace FivemStormManager
             git_repo   = ConfigurationManager.AppSettings["GitRepo"];
             git_user   = ConfigurationManager.AppSettings["StormBotUser"];
             git_pass   = ConfigurationManager.AppSettings["StormBotPass"];
+            git_email  = ConfigurationManager.AppSettings["StormBotEmail"];
         }
 
         public static void PullLatest()
@@ -35,7 +37,7 @@ namespace FivemStormManager
                     Password = git_pass
                 });
 
-                Signature signature = new Signature(new Identity("stormbot", "fruitrolluppotato@gmail.com"), DateTimeOffset.Now);
+                Signature signature = new Signature(new Identity(git_user, git_email), DateTimeOffset.Now);
                 Commands.Pull(repo, signature, options);
             }
         }
