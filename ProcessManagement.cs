@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Management;
 
-namespace ServerRestartConsole
+namespace FivemStormManager
 {
     static public class ProcessManagement
     {

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
-namespace ServerRestartConsole
+namespace FivemStormManager
 {
     class Program
     {
@@ -17,6 +17,7 @@ namespace ServerRestartConsole
         private static string server_config         = string.Empty;
         private static string server_exe            = string.Empty;
         private static string server_citizen        = string.Empty;
+        private static string git_remote            = string.Empty;
 
         private static int previous_start              = -1;
         private static TimeSpan previous_warning       = new TimeSpan();
@@ -127,6 +128,10 @@ namespace ServerRestartConsole
 
             Thread.Sleep(20000);
             KillServer();
+
+            Git.ResetToLocalHead();
+            Git.PullLatest();
+
             StartServer();
 
         }
