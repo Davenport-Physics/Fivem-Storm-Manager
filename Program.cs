@@ -12,24 +12,25 @@ namespace FivemStormManager
     {
         private static List<TimeSpan> times         = new List<TimeSpan>();
         private static List<TimeSpan> warning_times = new List<TimeSpan>();
-        private static string server_cmd_file       = string.Empty;
-        private static string server_working_dir    = string.Empty;
-        private static string server_config         = string.Empty;
-        private static string server_exe            = string.Empty;
-        private static string server_citizen        = string.Empty;
-        private static string git_remote            = string.Empty;
+        private static string server_cmd_file       = ConfigurationManager.AppSettings["ServerExe"];
+        private static string server_working_dir    = ConfigurationManager.AppSettings["WorkingDirectory"];
+        private static string server_config         = ConfigurationManager.AppSettings["ServerConfig"];
+        private static string server_exe            = ConfigurationManager.AppSettings["ServerExe"];
+        private static string server_citizen        = ConfigurationManager.AppSettings["ServerCitizen"];
 
         private static int previous_start              = -1;
         private static TimeSpan previous_warning       = new TimeSpan();
         private static Process server                  = new Process();
         private static List<Process> spawned_processes = new List<Process>();
+        private static DbAccess logger                 = new DbAccess();
 
         static void Main(string[] args)
         {
+            Git.InitGit();
 
-            SetServerConfigs();
             SetServerTimes();
             SetProcess();
+            PullLatestChanges();
             StartServer();
 
             Thread restarter = new Thread(ServerRestartChecker);
@@ -37,19 +38,16 @@ namespace FivemStormManager
 
             while (true)
             {
-                Console.Write("[FivemStormManager]$ ");
                 WriteToServer(Console.ReadLine(), false);
             }
 
-        }
-
-        private static void SetServerConfigs()
-        {
-            server_cmd_file    = ConfigurationManager.AppSettings["ServerExe"];
-            server_working_dir = ConfigurationManager.AppSettings["WorkingDirectory"];
-            server_config      = ConfigurationManager.AppSettings["ServerConfig"];
-            server_exe         = ConfigurationManager.AppSettings["ServerExe"];
-            server_citizen     = ConfigurationManager.AppSettings["ServerCitizen"];
+            /*
+            ExternalCommands.InitSocket();
+            while (true)
+            {
+                WriteToServer(ExternalCommands.BeginReading());
+            }*/
+            
         }
 
         private static void SetServerTimes()
@@ -128,12 +126,15 @@ namespace FivemStormManager
 
             Thread.Sleep(20000);
             KillServer();
-
-            Git.ResetToLocalHead();
-            Git.PullLatest();
-
+            PullLatestChanges();
             StartServer();
 
+        }
+
+        private static void PullLatestChanges()
+        {
+            Write(Git.ResetToLocalHead());
+            Write(Git.PullLatest());
         }
 
         private static void KillServer()
@@ -168,6 +169,7 @@ namespace FivemStormManager
         private static void Write(string message)
         {
             Console.WriteLine("FivemStormManager " + DateTime.Now.ToString() + " : " + message);
+            logger.Log(message);
         }
 
         private static void WriteToServer(string message, bool with_write_message = true)

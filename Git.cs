@@ -24,31 +24,41 @@ namespace FivemStormManager
             git_email  = ConfigurationManager.AppSettings["StormBotEmail"];
         }
 
-        public static void PullLatest()
+        public static string PullLatest()
         {
-            using (var repo = new Repository(git_repo))
+            try
             {
-                PullOptions options  = new PullOptions();
-                options.FetchOptions = new FetchOptions();
-                options.FetchOptions.CredentialsProvider = new CredentialsHandler((url, usernameFromUrl, types) =>
-                new UsernamePasswordCredentials()
+                using (var repo = new Repository(git_repo))
                 {
-                    Username = git_user,
-                    Password = git_pass
-                });
+                    PullOptions options  = new PullOptions();
+                    options.FetchOptions = new FetchOptions();
+                    options.FetchOptions.CredentialsProvider = new CredentialsHandler((url, usernameFromUrl, types) =>
+                    new UsernamePasswordCredentials()
+                    {
+                        Username = git_user,
+                        Password = git_pass
+                    });
 
-                Signature signature = new Signature(new Identity(git_user, git_email), DateTimeOffset.Now);
-                Commands.Pull(repo, signature, options);
-            }
+                    Signature signature = new Signature(new Identity(git_user, git_email), DateTimeOffset.Now);
+                    Commands.Pull(repo, signature, options);
+                }
+                return "GIT: " + "Successfully pulled latest git";
+            } catch (Exception e) { return "GIT: " + e.Message;  }
+
         }
 
-        public static void ResetToLocalHead()
+        public static string ResetToLocalHead()
         {
-            using (var repo = new Repository(git_repo))
+            try
             {
-                Commit previousCommit = repo.Head.Commits.ElementAt(1);
-                repo.Reset(ResetMode.Hard, previousCommit);
-            }
+                using (var repo = new Repository(git_repo))
+                {
+                    Commit previousCommit = repo.Head.Commits.ElementAt(1);
+                    repo.Reset(ResetMode.Hard, previousCommit);
+                }
+                return "GIT: Successfully reset to local head";
+            } catch (Exception e) { return "GIT: " + e.Message; }
+
         }
     }
 }
