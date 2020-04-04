@@ -30,7 +30,7 @@ namespace FivemStormManager
 
             SetServerTimes();
             SetProcess();
-            PullLatestChanges();
+            //PullLatestChanges();
             StartServer();
 
             Thread restarter = new Thread(ServerRestartChecker);
@@ -38,6 +38,7 @@ namespace FivemStormManager
 
             while (true)
             {
+                Console.Write("[FivemStormManager]$ ");
                 WriteToServer(Console.ReadLine(), false);
             }
 
